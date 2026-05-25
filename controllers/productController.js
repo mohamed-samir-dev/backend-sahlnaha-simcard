@@ -36,8 +36,8 @@ exports.getProducts = async (req, res) => {
 
 exports.getFeaturedProducts = async (req, res) => {
   const [stc, mobily] = await Promise.all([
-    Product.find({ inStock: true, brand: { $regex: /^stc$/i } }).sort({ originalPrice: -1 }).limit(2),
-    Product.find({ inStock: true, brand: { $regex: /^mobily$/i } }).sort({ originalPrice: -1 }).limit(2),
+    Product.find({ inStock: true, brand: { $regex: /^stc/i } }).sort({ originalPrice: -1 }).limit(2),
+    Product.find({ inStock: true, brand: { $regex: /موبايلي/ } }).sort({ originalPrice: -1 }).limit(2),
   ]);
   res.json([...stc, ...mobily]);
 };
