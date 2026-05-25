@@ -10,13 +10,19 @@ function normalizeArabic(str) {
 }
 
 exports.getProducts = async (req, res) => {
-  const { q, brand } = req.query;
+  const { q, brand, category, limit } = req.query;
   const query = {};
   if (brand) query.brand = { $regex: new RegExp(`^${brand}$`, "i") };
-  if (!q) return res.json(await Product.find(query).sort({ createdAt: 1 }));
+  if (category) query.category = category;
+
+  if (!q) {
+    let cursor = Product.find(query).sort({ createdAt: -1 });
+    if (limit) cursor = cursor.limit(parseInt(limit));
+    return res.json(await cursor);
+  }
 
   const normalized = normalizeArabic(q);
-  const products = await Product.find(query).sort({ createdAt: 1 });
+  const products = await Product.find(query).sort({ createdAt: -1 });
   const filtered = products.filter((p) =>
     normalizeArabic(p.name).includes(normalized)
   );
@@ -31,7 +37,7 @@ exports.getFeaturedProducts = async (req, res) => {
 };
 
 
-exports.getProductById = async (req, res) => {
+exports.getProduct = async (req, res) => {
   const product = await Product.findById(req.params.id);
   if (!product) return res.status(404).json({ message: "Product not found" });
   res.json(product);

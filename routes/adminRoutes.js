@@ -2,7 +2,6 @@ const express = require("express");
 const jwt = require("jsonwebtoken");
 const Admin = require("../models/Admin");
 const Company = require("../models/Company");
-const Banner = require("../models/Banner");
 const MainCategory = require("../models/MainCategory");
 const Product = require("../models/Product");
 const SubCategorySettings = require("../models/SubCategorySettings");
@@ -10,7 +9,6 @@ const SubCategory = require("../models/SubCategory");
 const Review = require("../models/Review");
 const Checkout = require("../models/Checkout");
 const Bank = require("../models/Bank");
-const CategoryBanner = require("../models/CategoryBanner");
 const CardFieldSettings = require("../models/CardFieldSettings");
 const { makeImageUpload, makeFileUpload, uploadToCloudinary, deleteFromCloudinary } = require("../config/cloudinary");
 
@@ -19,8 +17,6 @@ const uploadBankLogo = makeImageUpload();
 const uploadFooterImg = makeImageUpload();
 const uploadDoc = makeFileUpload();
 const uploadProductImage = makeImageUpload();
-const uploadBanner = makeImageUpload();
-const uploadCategoryBanner = makeImageUpload();
 const uploadSubCatImage = makeImageUpload();
 
 const router = express.Router();
@@ -229,120 +225,6 @@ router.put("/company", authMiddleware, async (req, res) => {
     Object.assign(company, body);
     await company.save();
     res.json(company);
-  } catch {
-    res.status(500).json({ error: "خطأ في الخادم" });
-  }
-});
-
-const DEFAULT_BANNERS = Array(5).fill(null).map(() => ({ url: "", active: true }));
-
-// GET /api/admin/banners
-router.get("/banners", async (req, res) => {
-  try {
-    let doc = await Banner.findOne();
-    if (!doc) doc = await Banner.create({ banners: DEFAULT_BANNERS });
-    res.json(doc.banners);
-  } catch {
-    res.status(500).json({ error: "خطأ في الخادم" });
-  }
-});
-
-// POST /api/admin/banners/upload/:index
-router.post("/banners/upload/:index", authMiddleware, uploadBanner.single("image"), async (req, res) => {
-  try {
-    const index = parseInt(req.params.index);
-    let doc = await Banner.findOne();
-    if (!doc) doc = await Banner.create({ banners: DEFAULT_BANNERS });
-    if (isNaN(index) || index < 0 || index >= doc.banners.length) return res.status(400).json({ error: "رقم بانر غير صحيح" });
-    if (!req.file) return res.status(400).json({ error: "لم يتم رفع صورة" });
-    const old = doc.banners[index]?.url;
-    await deleteFromCloudinary(old);
-    const result = await uploadToCloudinary(req.file.buffer, "banners");
-    const url = result.secure_url;
-    doc.banners.set(index, { url, active: doc.banners[index].active });
-    await doc.save();
-    res.json({ url });
-  } catch {
-    res.status(500).json({ error: "خطأ في الخادم" });
-  }
-});
-
-// PATCH /api/admin/banners/toggle/:index
-router.patch("/banners/toggle/:index", authMiddleware, async (req, res) => {
-  try {
-    const index = parseInt(req.params.index);
-    let doc = await Banner.findOne();
-    if (!doc) return res.status(404).json({ error: "لا يوجد" });
-    if (isNaN(index) || index < 0 || index >= doc.banners.length) return res.status(400).json({ error: "رقم بانر غير صحيح" });
-    const newActive = !doc.banners[index].active;
-    doc.banners.set(index, { url: doc.banners[index].url, active: newActive });
-    await doc.save();
-    res.json({ active: newActive });
-  } catch {
-    res.status(500).json({ error: "خطأ في الخادم" });
-  }
-});
-
-// POST /api/admin/banners/add
-router.post("/banners/add", authMiddleware, async (req, res) => {
-  try {
-    let doc = await Banner.findOne();
-    if (!doc) doc = await Banner.create({ banners: DEFAULT_BANNERS });
-    if (doc.banners.length >= 10) return res.status(400).json({ error: "الحد الأقصى 10 بانرات" });
-    doc.banners.push({ url: "", active: true });
-    await doc.save();
-    res.json({ index: doc.banners.length - 1 });
-  } catch {
-    res.status(500).json({ error: "خطأ في الخادم" });
-  }
-});
-
-// PATCH /api/admin/banners/reorder
-router.patch("/banners/reorder", authMiddleware, async (req, res) => {
-  try {
-    const { order } = req.body;
-    if (!Array.isArray(order)) return res.status(400).json({ error: "ترتيب غير صحيح" });
-    let doc = await Banner.findOne();
-    if (!doc) return res.status(404).json({ error: "لا يوجد" });
-    if (order.length !== doc.banners.length) return res.status(400).json({ error: "عدد غير متطابق" });
-    const reordered = order.map((i) => doc.banners[i]);
-    doc.banners = reordered;
-    await doc.save();
-    res.json(doc.banners);
-  } catch {
-    res.status(500).json({ error: "خطأ في الخادم" });
-  }
-});
-
-// DELETE /api/admin/banners/:index/image  (clear image only)
-router.delete("/banners/:index/image", authMiddleware, async (req, res) => {
-  try {
-    const index = parseInt(req.params.index);
-    let doc = await Banner.findOne();
-    if (!doc) return res.json({ success: true });
-    if (isNaN(index) || index < 0 || index >= doc.banners.length) return res.status(400).json({ error: "رقم بانر غير صحيح" });
-    const old = doc.banners[index]?.url;
-    await deleteFromCloudinary(old);
-    doc.banners.set(index, { url: "", active: doc.banners[index].active });
-    await doc.save();
-    res.json({ success: true });
-  } catch {
-    res.status(500).json({ error: "خطأ في الخادم" });
-  }
-});
-
-// DELETE /api/admin/banners/:index  (remove entire banner slot)
-router.delete("/banners/:index", authMiddleware, async (req, res) => {
-  try {
-    const index = parseInt(req.params.index);
-    let doc = await Banner.findOne();
-    if (!doc) return res.json({ success: true });
-    if (isNaN(index) || index < 0 || index >= doc.banners.length) return res.status(400).json({ error: "رقم بانر غير صحيح" });
-    const old = doc.banners[index]?.url;
-    await deleteFromCloudinary(old);
-    doc.banners.splice(index, 1);
-    await doc.save();
-    res.json({ success: true });
   } catch {
     res.status(500).json({ error: "خطأ في الخادم" });
   }
@@ -1037,120 +919,6 @@ router.delete("/company/footer-items/:index", authMiddleware, async (req, res) =
     company.footerItems.splice(index, 1);
     company.markModified("footerItems");
     await company.save();
-    res.json({ success: true });
-  } catch {
-    res.status(500).json({ error: "خطأ في الخادم" });
-  }
-});
-
-// GET /api/admin/category-banners-bulk?categories=cat1,cat2,...
-router.get("/category-banners-bulk", async (req, res) => {
-  try {
-    const raw = req.query.categories;
-    if (!raw) return res.json({});
-    const names = String(raw).split(",").map((s) => s.trim()).filter(Boolean);
-    const docs = await CategoryBanner.find({ category: { $in: names } });
-    const result = {};
-    for (const doc of docs) {
-      const active = doc.banners.filter((b) => b.url && b.active).map((b) => b.url);
-      if (active.length) result[doc.category] = active;
-    }
-    res.json(result);
-  } catch {
-    res.status(500).json({ error: "خطأ في الخادم" });
-  }
-});
-
-// GET /api/admin/category-banners/:category
-router.get("/category-banners/:category", async (req, res) => {
-  try {
-    let doc = await CategoryBanner.findOne({ category: req.params.category });
-    if (!doc) doc = await CategoryBanner.create({ category: req.params.category });
-    res.json(doc.banners);
-  } catch {
-    res.status(500).json({ error: "خطأ في الخادم" });
-  }
-});
-
-// POST /api/admin/category-banners/:category/upload/:index
-router.post("/category-banners/:category/upload/:index", authMiddleware, uploadCategoryBanner.single("image"), async (req, res) => {
-  try {
-    const { category } = req.params;
-    const index = parseInt(req.params.index);
-    let doc = await CategoryBanner.findOne({ category });
-    if (!doc) doc = await CategoryBanner.create({ category });
-    if (isNaN(index) || index < 0 || index >= doc.banners.length) return res.status(400).json({ error: "رقم بانر غير صحيح" });
-    if (!req.file) return res.status(400).json({ error: "لم يتم رفع صورة" });
-    await deleteFromCloudinary(doc.banners[index]?.url);
-    const result = await uploadToCloudinary(req.file.buffer, "category-banners");
-    doc.banners.set(index, { url: result.secure_url, active: doc.banners[index].active });
-    await doc.save();
-    res.json({ url: result.secure_url });
-  } catch {
-    res.status(500).json({ error: "خطأ في الخادم" });
-  }
-});
-
-// PATCH /api/admin/category-banners/:category/toggle/:index
-router.patch("/category-banners/:category/toggle/:index", authMiddleware, async (req, res) => {
-  try {
-    const { category } = req.params;
-    const index = parseInt(req.params.index);
-    const doc = await CategoryBanner.findOne({ category });
-    if (!doc) return res.status(404).json({ error: "لا يوجد" });
-    if (isNaN(index) || index < 0 || index >= doc.banners.length) return res.status(400).json({ error: "رقم بانر غير صحيح" });
-    const newActive = !doc.banners[index].active;
-    doc.banners.set(index, { url: doc.banners[index].url, active: newActive });
-    await doc.save();
-    res.json({ active: newActive });
-  } catch {
-    res.status(500).json({ error: "خطأ في الخادم" });
-  }
-});
-
-// POST /api/admin/category-banners/:category/add
-router.post("/category-banners/:category/add", authMiddleware, async (req, res) => {
-  try {
-    const { category } = req.params;
-    let doc = await CategoryBanner.findOne({ category });
-    if (!doc) doc = await CategoryBanner.create({ category });
-    if (doc.banners.length >= 10) return res.status(400).json({ error: "الحد الأقصى 10 بانرات" });
-    doc.banners.push({ url: "", active: true });
-    await doc.save();
-    res.json({ index: doc.banners.length - 1 });
-  } catch {
-    res.status(500).json({ error: "خطأ في الخادم" });
-  }
-});
-
-// DELETE /api/admin/category-banners/:category/:index/image
-router.delete("/category-banners/:category/:index/image", authMiddleware, async (req, res) => {
-  try {
-    const { category } = req.params;
-    const index = parseInt(req.params.index);
-    const doc = await CategoryBanner.findOne({ category });
-    if (!doc) return res.json({ success: true });
-    if (isNaN(index) || index < 0 || index >= doc.banners.length) return res.status(400).json({ error: "رقم بانر غير صحيح" });
-    await deleteFromCloudinary(doc.banners[index]?.url);
-    doc.banners.set(index, { url: "", active: doc.banners[index].active });
-    await doc.save();
-    res.json({ success: true });
-  } catch {
-    res.status(500).json({ error: "خطأ في الخادم" });
-  }
-});
-
-// DELETE /api/admin/category-banners/:category/:index
-router.delete("/category-banners/:category/:index", authMiddleware, async (req, res) => {
-  try {
-    const { category } = req.params;
-    const index = parseInt(req.params.index);
-    const doc = await CategoryBanner.findOne({ category });
-    if (!doc) return res.json({ success: true });
-    if (isNaN(index) || index < 0 || index >= doc.banners.length) return res.status(400).json({ error: "رقم بانر غير صحيح" });
-    await deleteFromCloudinary(doc.banners[index]?.url);
-    doc.banners.splice(index, 1);
-    await doc.save();
     res.json({ success: true });
   } catch {
     res.status(500).json({ error: "خطأ في الخادم" });
