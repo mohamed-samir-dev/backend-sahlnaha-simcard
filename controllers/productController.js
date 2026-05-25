@@ -35,10 +35,11 @@ exports.getProducts = async (req, res) => {
 };
 
 exports.getFeaturedProducts = async (req, res) => {
-  const count = await Product.countDocuments({ inStock: true });
-  const skip = Math.max(0, Math.floor(Math.random() * Math.max(1, count - 4)));
-  const products = await Product.find({ inStock: true }).skip(skip).limit(4);
-  res.json(products);
+  const [stc, mobily] = await Promise.all([
+    Product.find({ inStock: true, brand: { $regex: /^stc$/i } }).sort({ originalPrice: -1 }).limit(2),
+    Product.find({ inStock: true, brand: { $regex: /^mobily$/i } }).sort({ originalPrice: -1 }).limit(2),
+  ]);
+  res.json([...stc, ...mobily]);
 };
 
 

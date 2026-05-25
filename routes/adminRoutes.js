@@ -580,7 +580,7 @@ router.delete("/brands/banner/:brand", authMiddleware, async (req, res) => {
 router.get("/brands/settings", authMiddleware, async (req, res) => {
   try {
     const settings = await SubCategorySettings.find({ category: "__brand__" });
-    res.json(settings.map((s) => ({ brand: s.subCategory, showInHome: s.showInHome, order: s.order, bannerImages: s.bannerImages || [] })));
+    res.json(settings.map((s) => ({ brand: s.subCategory, showInHome: s.showInHome, order: s.order })));
   } catch {
     res.status(500).json({ error: "خطأ في الخادم" });
   }
