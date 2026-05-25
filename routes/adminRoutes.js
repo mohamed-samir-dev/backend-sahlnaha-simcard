@@ -518,6 +518,102 @@ router.patch("/sub-categories/max", authMiddleware, async (req, res) => {
   }
 });
 
+// GET /api/admin/brands - distinct brands from products with count
+router.get("/brands", authMiddleware, async (req, res) => {
+  try {
+    const result = await Product.aggregate([
+      { $match: { brand: { $exists: true, $nin: [null, ""] } } },
+      { $group: { _id: "$brand", count: { $sum: 1 } } },
+      { $sort: { _id: 1 } },
+    ]);
+    res.json(result.map((r) => ({ name: r._id, count: r.count })));
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// GET /api/admin/brands/home-settings (public)
+router.get("/brands/home-settings", async (req, res) => {
+  try {
+    const settings = await SubCategorySettings.find({ category: "__brand__" }).sort({ order: 1 });
+    res.json(settings.map((s) => ({ brand: s.subCategory, showInHome: s.showInHome, order: s.order })));
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// GET /api/admin/brands/settings
+router.get("/brands/settings", authMiddleware, async (req, res) => {
+  try {
+    const settings = await SubCategorySettings.find({ category: "__brand__" });
+    res.json(settings.map((s) => ({ brand: s.subCategory, showInHome: s.showInHome, order: s.order })));
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// PATCH /api/admin/brands/settings/toggle
+router.patch("/brands/settings/toggle", authMiddleware, async (req, res) => {
+  try {
+    const { brand } = req.body;
+    if (!brand) return res.status(400).json({ error: "اسم البراند مطلوب" });
+    const existing = await SubCategorySettings.findOne({ category: "__brand__", subCategory: brand });
+    const newValue = existing ? !existing.showInHome : true;
+    const doc = await SubCategorySettings.findOneAndUpdate(
+      { category: "__brand__", subCategory: brand },
+      { $set: { showInHome: newValue } },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+    res.json({ showInHome: doc.showInHome });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// PATCH /api/admin/brands/settings/order
+router.patch("/brands/settings/order", authMiddleware, async (req, res) => {
+  try {
+    const { brand, order } = req.body;
+    if (!brand) return res.status(400).json({ error: "اسم البراند مطلوب" });
+    await SubCategorySettings.findOneAndUpdate(
+      { category: "__brand__", subCategory: brand },
+      { $set: { order: Number(order) || 0 } },
+      { upsert: true }
+    );
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// GET /api/admin/brands/max (public)
+router.get("/brands/max", async (req, res) => {
+  try {
+    const doc = await SubCategorySettings.findOne({ category: "__brand_config__", subCategory: "__max__" });
+    res.json({ max: doc ? doc.order : 4 });
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// PATCH /api/admin/brands/max
+router.patch("/brands/max", authMiddleware, async (req, res) => {
+  try {
+    const { max } = req.body;
+    const val = parseInt(max);
+    if (!val || val < 1) return res.status(400).json({ error: "قيمة غير صحيحة" });
+    await SubCategorySettings.findOneAndUpdate(
+      { category: "__brand_config__", subCategory: "__max__" },
+      { $set: { order: val, showInHome: false } },
+      { upsert: true }
+    );
+    res.json({ max: val });
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
 // GET /api/admin/orders
 router.get("/orders", async (req, res) => {
   try {
