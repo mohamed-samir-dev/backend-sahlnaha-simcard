@@ -11,19 +11,21 @@ function normalizeArabic(str) {
 
 exports.getProducts = async (req, res) => {
   try {
-    const { q, brand, category, limit } = req.query;
+    const { q, brand, category, limit, sort } = req.query;
     const query = {};
     if (brand) query.brand = { $regex: new RegExp(`^${brand}$`, "i") };
     if (category) query.category = category;
 
+    const sortObj = sort === "price_desc" ? { originalPrice: -1 } : { createdAt: -1 };
+
     if (!q) {
-      let cursor = Product.find(query).sort({ createdAt: -1 });
+      let cursor = Product.find(query).sort(sortObj);
       if (limit) cursor = cursor.limit(parseInt(limit));
       return res.json(await cursor);
     }
 
     const normalized = normalizeArabic(q);
-    const products = await Product.find(query).sort({ createdAt: -1 });
+    const products = await Product.find(query).sort(sortObj);
     const filtered = products.filter((p) =>
       normalizeArabic(p.name).includes(normalized)
     );
