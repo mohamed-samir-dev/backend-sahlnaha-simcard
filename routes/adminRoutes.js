@@ -536,7 +536,39 @@ router.get("/brands", authMiddleware, async (req, res) => {
 router.get("/brands/home-settings", async (req, res) => {
   try {
     const settings = await SubCategorySettings.find({ category: "__brand__" }).sort({ order: 1 });
-    res.json(settings.map((s) => ({ brand: s.subCategory, showInHome: s.showInHome, order: s.order })));
+    res.json(settings.map((s) => ({ brand: s.subCategory, showInHome: s.showInHome, order: s.order, bannerImage: s.bannerImage || "" })));
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// POST /api/admin/brands/banner/:brand - upload banner image
+router.post("/brands/banner/:brand", authMiddleware, makeImageUpload().single("image"), async (req, res) => {
+  try {
+    const { brand } = req.params;
+    if (!req.file) return res.status(400).json({ error: "لم يتم رفع صورة" });
+    const existing = await SubCategorySettings.findOne({ category: "__brand__", subCategory: brand });
+    if (existing?.bannerImage) await deleteFromCloudinary(existing.bannerImage);
+    const result = await uploadToCloudinary(req.file.buffer, "banners");
+    const doc = await SubCategorySettings.findOneAndUpdate(
+      { category: "__brand__", subCategory: brand },
+      { $set: { bannerImage: result.secure_url } },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+    res.json({ url: doc.bannerImage });
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// DELETE /api/admin/brands/banner/:brand
+router.delete("/brands/banner/:brand", authMiddleware, async (req, res) => {
+  try {
+    const { brand } = req.params;
+    const doc = await SubCategorySettings.findOne({ category: "__brand__", subCategory: brand });
+    if (doc?.bannerImage) await deleteFromCloudinary(doc.bannerImage);
+    await SubCategorySettings.updateOne({ category: "__brand__", subCategory: brand }, { $set: { bannerImage: "" } });
+    res.json({ success: true });
   } catch {
     res.status(500).json({ error: "خطأ في الخادم" });
   }
