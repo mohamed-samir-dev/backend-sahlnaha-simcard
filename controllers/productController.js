@@ -10,23 +10,28 @@ function normalizeArabic(str) {
 }
 
 exports.getProducts = async (req, res) => {
-  const { q, brand, category, limit } = req.query;
-  const query = {};
-  if (brand) query.brand = { $regex: new RegExp(`^${brand}$`, "i") };
-  if (category) query.category = category;
+  try {
+    const { q, brand, category, limit } = req.query;
+    const query = {};
+    if (brand) query.brand = { $regex: new RegExp(`^${brand}$`, "i") };
+    if (category) query.category = category;
 
-  if (!q) {
-    let cursor = Product.find(query).sort({ createdAt: -1 });
-    if (limit) cursor = cursor.limit(parseInt(limit));
-    return res.json(await cursor);
+    if (!q) {
+      let cursor = Product.find(query).sort({ createdAt: -1 });
+      if (limit) cursor = cursor.limit(parseInt(limit));
+      return res.json(await cursor);
+    }
+
+    const normalized = normalizeArabic(q);
+    const products = await Product.find(query).sort({ createdAt: -1 });
+    const filtered = products.filter((p) =>
+      normalizeArabic(p.name).includes(normalized)
+    );
+    res.json(filtered);
+  } catch (err) {
+    console.error("getProducts error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
   }
-
-  const normalized = normalizeArabic(q);
-  const products = await Product.find(query).sort({ createdAt: -1 });
-  const filtered = products.filter((p) =>
-    normalizeArabic(p.name).includes(normalized)
-  );
-  res.json(filtered);
 };
 
 exports.getFeaturedProducts = async (req, res) => {
