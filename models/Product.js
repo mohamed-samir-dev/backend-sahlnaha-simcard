@@ -39,6 +39,8 @@ const productSchema = new mongoose.Schema(
     subCategory: { type: String },
     brand: { type: String },
     inStock: { type: Boolean, default: true },
+    isFeatured: { type: Boolean, default: false },
+    sortOrder: { type: Number, default: 0 },
   },
   {
     timestamps: true,

@@ -779,6 +779,18 @@ router.delete("/reviews/:id", authMiddleware, async (req, res) => {
   }
 });
 
+// POST /api/admin/products/upload-image
+router.post("/products/upload-image", authMiddleware, uploadProductImage.single("image"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: "لم يتم رفع صورة" });
+    const result = await uploadToCloudinary(req.file.buffer, "products");
+    res.json({ url: result.secure_url });
+  } catch (err) {
+    console.error("upload-image error:", err);
+    res.status(500).json({ error: "فشل رفع الصورة" });
+  }
+});
+
 // POST /api/admin/products
 const uploadProductFields = makeImageUpload();
 router.post("/products", authMiddleware, uploadProductFields.fields([{ name: "image", maxCount: 1 }, { name: "galleryFiles", maxCount: 20 }]), async (req, res) => {
@@ -922,7 +934,7 @@ router.put("/products/:id", authMiddleware, uploadProductFieldsEdit.fields([{ na
       product.image = body.imageUrl;
     }
 
-    // Gallery images: URLs + uploaded files
+    // Gallery images: URLs + uploaded files (multipart form)
     const galleryUrls = [];
     if (body.galleryUrls) {
       try { galleryUrls.push(...JSON.parse(body.galleryUrls)); } catch { /* ignore */ }
@@ -935,6 +947,20 @@ router.put("/products/:id", authMiddleware, uploadProductFieldsEdit.fields([{ na
     }
     if (body.galleryUrls !== undefined || req.files?.galleryFiles) {
       product.images = galleryUrls;
+    }
+
+    // Direct images array from JSON body (edit page)
+    if (body.images !== undefined && !req.files?.galleryFiles && body.galleryUrls === undefined) {
+      try {
+        product.images = Array.isArray(body.images) ? body.images : JSON.parse(body.images);
+      } catch { /* ignore */ }
+    }
+
+    // Direct gallery array from JSON body (edit page)
+    if (body.gallery !== undefined) {
+      try {
+        product.gallery = Array.isArray(body.gallery) ? body.gallery : JSON.parse(body.gallery);
+      } catch { /* ignore */ }
     }
 
     await product.save();
