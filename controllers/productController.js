@@ -16,11 +16,17 @@ exports.getProducts = async (req, res) => {
     if (brand) query.brand = { $regex: new RegExp(`^${brand}$`, "i") };
     if (category) query.category = category;
 
-    const sortObj = sort === "price_desc" ? { originalPrice: -1 } : sort === "duration_desc" ? { warrantyYears: -1 } : { createdAt: -1 };
+    const sortObj = sort === "duration_desc" ? { warrantyYears: -1 } : { createdAt: -1 };
 
     if (!q) {
-      let cursor = Product.find(query).sort(sortObj);
-      if (limit) cursor = cursor.limit(parseInt(limit));
+      let cursor = sort === "price_desc"
+        ? Product.aggregate([
+            { $match: query },
+            { $addFields: { effectivePrice: { $ifNull: ["$salePrice", "$originalPrice"] } } },
+            { $sort: { effectivePrice: -1 } },
+            ...(limit ? [{ $limit: parseInt(limit) }] : []),
+          ])
+        : Product.find(query).sort(sortObj).limit(limit ? parseInt(limit) : 0);
       return res.json(await cursor);
     }
 
