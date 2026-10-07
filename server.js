@@ -16,6 +16,8 @@ const allowedOrigins = [
   "https://frontend-sahlnaha-simcard.vercel.app",
   "https://masaralhatif.com",
   "https://www.masaralhatif.com",
+  "http://masaralhatif.com",
+  "http://www.masaralhatif.com",
   ...(process.env.FRONTEND_URL || "")
     .split(",")
     .map((o) => o.trim().replace(/\/+$/, ""))
@@ -25,7 +27,14 @@ const allowedOrigins = [
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-    cb(new Error("Not allowed by CORS"));
+    cb(new Error("Not allowed by CORS: " + origin));
+  },
+  credentials: true,
+}));
+app.options("*", cors({
+  origin: (origin, cb) => {
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    cb(new Error("Not allowed by CORS: " + origin));
   },
   credentials: true,
 }));
