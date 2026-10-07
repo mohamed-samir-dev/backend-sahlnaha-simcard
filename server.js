@@ -14,6 +14,8 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:3000",
   "https://frontend-sahlnaha-simcard.vercel.app",
+  "https://masaralhatif.com",
+  "https://www.masaralhatif.com",
   ...(process.env.FRONTEND_URL || "")
     .split(",")
     .map((o) => o.trim().replace(/\/+$/, ""))
