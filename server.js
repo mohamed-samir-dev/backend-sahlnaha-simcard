@@ -24,20 +24,15 @@ const allowedOrigins = [
     .filter(Boolean),
 ];
 
-app.use(cors({
+const corsOptions = {
   origin: (origin, cb) => {
     if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
     cb(new Error("Not allowed by CORS: " + origin));
   },
   credentials: true,
-}));
-app.options("/{*path}", cors({
-  origin: (origin, cb) => {
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-    cb(new Error("Not allowed by CORS: " + origin));
-  },
-  credentials: true,
-}));
+};
+
+app.use(cors(corsOptions));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
