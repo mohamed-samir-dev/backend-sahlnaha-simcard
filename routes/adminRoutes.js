@@ -983,8 +983,9 @@ router.post("/company/footer-image/:key", authMiddleware, uploadFooterImg.single
     company[key] = result.secure_url;
     await company.save();
     res.json({ url: company[key] });
-  } catch {
-    res.status(500).json({ error: "خطأ في الخادم" });
+  } catch (err) {
+    console.error("[footer-image error]", err);
+    res.status(500).json({ error: "خطأ في الخادم", detail: err.message });
   }
 });
 
@@ -1001,8 +1002,9 @@ router.post("/company/footer-file/:key", authMiddleware, uploadDoc.single("file"
     company[key] = result.secure_url;
     await company.save();
     res.json({ url: company[key] });
-  } catch {
-    res.status(500).json({ error: "خطأ في الخادم" });
+  } catch (err) {
+    console.error("[footer-file error]", err);
+    res.status(500).json({ error: "خطأ في الخادم", detail: err.message });
   }
 });
 
