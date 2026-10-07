@@ -13,6 +13,7 @@ connectDB();
 const app = express();
 const allowedOrigins = [
   "http://localhost:3000",
+  "https://frontend-sahlnaha-simcard.vercel.app",
   ...(process.env.FRONTEND_URL || "")
     .split(",")
     .map((o) => o.trim().replace(/\/+$/, ""))
