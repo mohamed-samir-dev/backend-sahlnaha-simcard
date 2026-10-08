@@ -49,6 +49,10 @@ const productSchema = new mongoose.Schema(
   }
 );
 
+productSchema.index({ category: 1, inStock: 1 });
+productSchema.index({ brand: 1, inStock: 1 });
+productSchema.index({ isFeatured: 1, sortOrder: 1 });
+
 productSchema.virtual("discountPercent").get(function () {
   if (this.salePrice != null && this.salePrice !== this.originalPrice) {
     return Math.round(((this.originalPrice - this.salePrice) / this.originalPrice) * 100);
