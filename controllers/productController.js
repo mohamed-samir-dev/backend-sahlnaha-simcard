@@ -31,10 +31,11 @@ exports.getProducts = async (req, res) => {
     }
 
     const normalized = normalizeArabic(q);
-    const products = await Product.find(query).sort(sortObj);
-    const filtered = products.filter((p) =>
-      normalizeArabic(p.name).includes(normalized)
-    );
+    const searchLimit = limit ? parseInt(limit) : 50;
+    const products = await Product.find(query).sort(sortObj).limit(200);
+    const filtered = products
+      .filter((p) => normalizeArabic(p.name).includes(normalized))
+      .slice(0, searchLimit);
     res.json(filtered);
   } catch (err) {
     console.error("getProducts error:", err);
