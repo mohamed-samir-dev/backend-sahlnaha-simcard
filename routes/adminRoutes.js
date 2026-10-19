@@ -554,8 +554,9 @@ router.post("/brands/banner/:brand", authMiddleware, makeImageUpload().single("i
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
     res.json({ url: result.secure_url, bannerImages: doc.bannerImages });
-  } catch {
-    res.status(500).json({ error: "خطأ في الخادم" });
+  } catch (err) {
+    console.error("[brands/banner] error:", err);
+    res.status(500).json({ error: "خطأ في الخادم", detail: err.message });
   }
 });
 
